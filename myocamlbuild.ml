@@ -29,6 +29,7 @@ dispatch begin function
      ocaml_lib ~extern:true ~dir:extlib_dir "extLib";
      ocaml_lib ~extern:true ~dir:(C.lib "deriving") "deriving";
      ocaml_lib ~extern:true ~dir:(C.lib "oUnit") "oUnit";
+     ocaml_lib ~extern:true ~dir:(C.lib "lablgtk2") "lablgtk";
 
      flag ["ocaml"; "doc"; "use_extLib"] (S[A"-I"; A extlib_dir]);
 

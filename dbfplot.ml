@@ -39,31 +39,33 @@ let user_select_file () =
 let dbf_to_csv dbf =
   Sys.command (sprintf "dbfxtrct -i%s > %s" dbf temp_csv) >> ignore
 
-let user_select_columns name =
+let get_columns name =
   dbf_to_csv name;
   bracket (open_in temp_csv) close_in_noerr (fun ch ->
     let first = try input_line ch with _ -> "" in
-    let cols = split_columns first in
-    if cols <> [] then
-    begin
-      List.iteri (fun i s -> printf "%u) %s\n" i s) cols;
-      print_string "Select columns : "; flush stdout;
-      let input = input_line stdin in
-      let sel = split_columns input >> List.filter_map (fun s -> catch int_of_string s) in
-      Some sel
-    end
-    else begin print_endline "No columns found"; None end
-  )
+    split_columns first)
+
+let user_select_columns name =
+  let cols = get_columns name in
+  if cols <> [] then
+  begin
+    List.iteri (fun i s -> printf "%u) %s\n" i s) cols;
+    print_string "Select columns : "; flush stdout;
+    let input = input_line stdin in
+    let sel = split_columns input >> List.filter_map (fun s -> catch int_of_string s) in
+    Some sel
+  end
+  else begin print_endline "No columns found"; None end
 
 let process dbf =
-  match user_select_columns dbf with
-  | None -> ()
-  | Some cols ->
+  dbf_to_csv dbf;
+  let display cols =
     with_open_out temp_gnuplot (fun ch ->
       with_output_ch ch (fun out -> gnuplot out temp_csv cols)
     );
-    dbf_to_csv dbf; (* not needed really *)
     Sys.command (sprintf "gnuplot %s" temp_gnuplot) >> ignore
+  in
+  Gtkui.control display (get_columns dbf)
 
 let usage_msg =
   let s1 = sprintf "dbfplot ver. %s\n" Git.revision in
