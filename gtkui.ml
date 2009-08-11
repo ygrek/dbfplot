@@ -25,7 +25,7 @@ let control f columns =
   let box_select = GPack.vbox ~packing:(mainbox#pack ~padding:2) () in
 
   let cols = List.map (fun col ->
-    GButton.check_button ~label:col ~packing:box_select#pack ()) columns in
+    GButton.check_button ~label:col ~packing:box_select#pack (), col) columns in
 
   let _ = GMisc.separator `HORIZONTAL ~packing:(mainbox#pack ~padding:2) () in
 
@@ -33,7 +33,7 @@ let control f columns =
 
   let button = GButton.button ~label:"Draw" ~packing:mainbox#pack () in
   let _ = button#connect#clicked ~callback:(fun () ->
-    let sel = List.mapi (fun i b -> if b#active then Some i else None) cols >> List.filter_map id in
+    let sel = List.mapi (fun i (b,n) -> if b#active then Some (i,n) else None) cols >> List.filter_map id in
     f sel)
   in
 
