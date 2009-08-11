@@ -13,10 +13,10 @@ let gnuplot out name cols =
   IO.printf out "set datafile separator \",\";\n";
   IO.printf out "set data style lines;\n";
   let plot_col (col,title) =
-    sprintf "'%s' using %u title '%s'" name col title
+    sprintf "'%s' using 0:%u title '%s'" name col title
   in
-  IO.printf out "plot %s;\n" (String.concat "," (List.map plot_col cols));
-  IO.printf out "pause -1;\n"
+  IO.printf out "plot %s;\n" (String.concat "," (List.map plot_col cols))
+(*   IO.printf out "pause -1;\n" *)
 
 let split_columns s =
     String.nsplit (String.replace_chars (function ',' -> " " | x -> String.make 1 x) s) " " >>
@@ -69,7 +69,7 @@ let process dbf =
     with_open_out temp_gnuplot (fun ch ->
       with_output_ch ch (fun out -> gnuplot out temp_csv cols)
     );
-    Sys.command (sprintf "gnuplot %s" temp_gnuplot) >> ignore
+    Sys.command (sprintf "gnuplot -persist %s" temp_gnuplot) >> ignore
   in
   Gtkui.control display colnames
 
