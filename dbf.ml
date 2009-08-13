@@ -6,6 +6,10 @@ open Prelude
 let temp_gnuplot = ".temp.gnuplot"
 let temp_csv = ".temp.csv"
 
+let gnuplot_cmd = match Sys.os_type with
+  | "Win32" -> "wgnuplot"
+  | _ -> "gnuplot"
+
 let with_open_out s = bracket (open_out s) close_out_noerr
 let with_output_ch ch = bracket (IO.output_channel ch) IO.close_out
 
@@ -36,12 +40,13 @@ let user_select_file () =
   if Sys.file_exists name then Some name else
     begin printf "No such file : %s\n%!" name; None end
 
-let dbf_to_csv dbf =
-  Sys.command (sprintf "dbfxtrct -i\"%s\" > %s" (String.escaped dbf) temp_csv) >> ignore
+let dbf_to_csv dbf csv =
+  match Sys.os_type with
+  | "Win32" -> Sys.command (sprintf "exptizer /export /closewhendone \"%s\" \"%s\"" (String.escaped dbf) csv) >> ignore
+  | _ -> Sys.command (sprintf "dbfxtrct -i\"%s\" > %s" (String.escaped dbf) csv) >> ignore
 
-let get_columns name =
-  dbf_to_csv name;
-  let cols = bracket (open_in temp_csv) close_in_noerr (fun ch ->
+let get_columns name =  
+  let cols = bracket (open_in name) close_in_noerr (fun ch ->
     let first = try input_line ch with _ -> "" in
     split_columns first >> List.take 19)
   in
@@ -62,9 +67,9 @@ let user_select_columns name =
   end
   else begin print_endline "No columns found"; None end
 
-let display cols =
+let display name cols =
   with_open_out temp_gnuplot (fun ch ->
-    with_output_ch ch (fun out -> gnuplot out temp_csv cols)
+    with_output_ch ch (fun out -> gnuplot out name cols)
   );
-  Sys.command (sprintf "gnuplot -persist %s" temp_gnuplot) >> ignore
+  Sys.command (sprintf "%s -persist %s" gnuplot_cmd temp_gnuplot) >> ignore
 

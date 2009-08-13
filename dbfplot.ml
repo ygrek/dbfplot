@@ -4,7 +4,7 @@ open Printf
 open Prelude
 
 let usage_msg =
-  let s1 = sprintf "dbfplot ver. %s\n" Git.revision in
+  let s1 = sprintf "dbfplot ver. %s\n" Version.id in
   let s2 = sprintf "Usage: %s <file.dbf>\n" (Filename.basename Sys.executable_name) in
   let s3 = "" in
   s1 ^ s2 ^ s3

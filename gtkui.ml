@@ -20,6 +20,11 @@ let dbf_filter () =
     ~name:"DBase files"
     ~patterns:[ "*.dbf"; "*.DBF"] ()
 
+let csv_filter () =
+  GFile.filter
+    ~name:"CSV files"
+    ~patterns:[ "*.csv"] ()
+
 let all_files () =
   let f = GFile.filter ~name:"All" () in
   f#add_pattern "*" ;
@@ -33,8 +38,8 @@ let ask_for_file ?parent () =
   in
   dialog#add_button_stock `CANCEL `CANCEL ;
   dialog#add_select_button_stock `OPEN `OPEN ;
+  dialog#add_filter (csv_filter ()) ;
   dialog#add_filter (all_files ()) ;
-  dialog#add_filter (dbf_filter ()) ;
   let r = begin match dialog#run () with
   | `OPEN -> dialog#filename
   | `DELETE_EVENT | `CANCEL -> None
@@ -47,7 +52,6 @@ let main () =
   match ask_for_file () with
   | None -> ()
   | Some file ->
-  dbf_to_csv file;
   let columns = get_columns file in
 
   let window = GWindow.window ~title:"dbfplot" ~border_width:10 () in
@@ -73,7 +77,7 @@ let main () =
   let button = GButton.button ~label:"Draw" ~packing:mainbox#pack () in
   let _ = button#connect#clicked ~callback:(fun () ->
     let sel = List.mapi (fun i (b,n) -> if b#active then Some (i,n) else None) cols >> List.filter_map id in
-    display sel)
+    display file sel)
   in
 
   let button = GButton.button ~label:"Quit" ~packing:mainbox#pack () in

@@ -9,14 +9,14 @@ let () =
   let with_res res destroy k = let x = (try k res with e -> destroy res; raise e) in destroy res; x in
   let get_line r d = with_res r d input_line in
 
-  with_res (open_out "git.ml") close_out (fun out ->
+  with_res (open_out "version.ml") close_out (fun out ->
    let revision =
     try
      get_line (Unix.open_process_in "git describe --always") (Unix.close_process_in)
     with
-     _ -> (try get_line (open_in "git.describe") close_in with _ -> "<unknown>")
+     _ -> (try get_line (open_in "version.id") close_in with _ -> "<unknown>")
    in
-   Printf.fprintf out "let revision=\"%s\"\n" (String.escaped revision)
+   Printf.fprintf out "let id=\"%s\"\n" (String.escaped revision)
   )
 
 ;;
@@ -24,14 +24,8 @@ let () =
 dispatch begin function
 | After_rules ->
 
-     let extlib_dir = C.lib "extlib" in
-
-     ocaml_lib ~extern:true ~dir:extlib_dir "extLib";
-     ocaml_lib ~extern:true ~dir:(C.lib "deriving") "deriving";
-     ocaml_lib ~extern:true ~dir:(C.lib "oUnit") "oUnit";
-     ocaml_lib ~extern:true ~dir:(C.lib "lablgtk2") "lablgtk";
-
-     flag ["ocaml"; "doc"; "use_extLib"] (S[A"-I"; A extlib_dir]);
+     C.extern "extlib" ~cma:"extLib";
+     C.extern "lablgtk2" ~cma:"lablgtk";
 
 | _ -> ()
 end
