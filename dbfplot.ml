@@ -3,6 +3,8 @@ open ExtLib
 open Printf
 open Prelude
 
+let () = Printexc.record_backtrace true
+
 let usage_msg =
   let s1 = sprintf "dbfplot ver. %s\n" Version.id in
   let s2 = sprintf "Usage: %s <file.dbf>\n" (Filename.basename Sys.executable_name) in

@@ -12,7 +12,8 @@ let error ?parent message =
       ~message_type:`ERROR
       ~buttons:GWindow.Buttons.close
       ?parent ~destroy_with_parent:true ~show:true () in
-  let _ = w#connect#response (fun _ -> w#destroy ()) in
+  w#run ();
+  w#destroy ();
   ()
 
 let dbf_filter () =
@@ -86,3 +87,8 @@ let main () =
   window#show ();
   GMain.main ()
 
+let main () = 
+  try
+    main ()
+  with e -> 
+    error (Printexc.to_string e ^ "\n" ^ Printexc.get_backtrace ()); raise e
