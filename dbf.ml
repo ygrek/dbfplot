@@ -10,12 +10,21 @@ let with_open_out s = bracket (open_out s) close_out_noerr
 let with_output_ch ch = bracket (IO.output_channel ch) IO.close_out
 
 let gnuplot out name cols =
-  IO.printf out "set datafile separator \",\";\n";
-  IO.printf out "set data style lines;\n";
+  let pr fmt = IO.printf out (fmt ^^ ";\n")in
+  pr "set datafile separator \",\"";
+  pr "set data style lines";
+  pr "set lmargin 10";
+  pr "set tmargin 0";
+  pr "set bmargin 0";
+  pr "set rmargin 0";
+  pr "set xtics in offset 0, 2";
+  pr "set multiplot layout %u,1" (List.length cols);
   let plot_col (col,title) =
-    sprintf "'%s' using 0:%u title '%s'" name col title
+    pr "plot '%s' using 0:%u title '%s'" name col title
   in
-  IO.printf out "plot %s;\n" (String.concat "," (List.map plot_col cols))
+  List.iter plot_col cols;
+  pr "unset multiplot"
+(*   pr "plot %s" (String.concat "," (List.map plot_col cols)) *)
 (*   IO.printf out "pause -1;\n" *)
 
 let split_columns s =
