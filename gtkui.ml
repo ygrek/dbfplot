@@ -42,42 +42,45 @@ let ask_for_file ?parent () =
   in
   dialog#destroy (); r
 
-let main () =
-
+let new_file (box:GPack.box) =
   match ask_for_file () with
-  | None -> ()
+  | None -> None
   | Some file ->
   dbf_to_csv file;
   let columns = get_columns file in
+  List.iter (fun w -> w#destroy ()) box#children;
+  List.map (fun col -> GButton.check_button ~label:col ~packing:box#pack (), col) columns >> some
+
+let main () =
+
+  let cols = ref [] in
 
   let window = GWindow.window ~title:"dbfplot" ~border_width:10 () in
-(*   window#event#connect#delete ~callback:(fun _ -> prerr_endline "Delete event occured"; false); *)
-  window#connect#destroy ~callback:GMain.quit;
+  let _ = window#connect#destroy ~callback:GMain.quit in
 
   let mainbox = GPack.vbox ~packing:window#add () in
+  let bbox = GPack.hbox ~packing:mainbox#pack () in
+  let box_sel = GPack.vbox ~packing:mainbox#pack () in
 
-(*   let b = GButton.button ~label:"Open File" ~packing:mainbox#pack () in *)
-(*   b#connect#clicked ~callback:(fun () -> file := ask_for_file window); *)
+  let bopen = GButton.button ~label:"Open File" ~packing:bbox#pack () in
 
-  (* ----------------------------------------------------------------------- *)
-
-  let box_select = GPack.vbox ~packing:(mainbox#pack ~padding:2) () in
-
-  let cols = List.map (fun col ->
-    GButton.check_button ~label:col ~packing:box_select#pack (), col) columns in
-
-(*   let _ = GMisc.separator `HORIZONTAL ~packing:(mainbox#pack ~padding:2) () in *)
-
-  (* ----------------------------------------------------------------------- *)
-
-  let button = GButton.button ~label:"Draw" ~packing:mainbox#pack () in
-  let _ = button#connect#clicked ~callback:(fun () ->
-    let sel = List.mapi (fun i (b,n) -> if b#active then Some (i,n) else None) cols >> List.filter_map id in
-    display sel)
+  let bdraw = GButton.button ~label:"Draw" ~packing:bbox#pack () in
+  let _ = bdraw#connect#clicked ~callback:(fun () ->
+    List.mapi (fun i (b,n) -> if b#active then Some (i,n) else None) !cols >> List.filter_map id >> display)
   in
 
-  let button = GButton.button ~label:"Quit" ~packing:mainbox#pack () in
-  button#connect#clicked ~callback:window#destroy;
+  let b = GButton.button ~label:"Quit" ~packing:bbox#pack () in
+  let _ = b#connect#clicked ~callback:window#destroy in
+
+  let open_file () =
+    begin match new_file (box_sel :> GPack.box) with
+    | None -> ()
+    | Some l -> cols := l
+    end
+  in
+  let _ = bopen#connect#clicked ~callback:open_file in
+
+  open_file ();
 
   window#show ();
   GMain.main ()
