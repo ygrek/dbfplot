@@ -42,15 +42,6 @@ let ask_for_file ?parent () =
   in
   dialog#destroy (); r
 
-let new_file (box:GPack.box) =
-  match ask_for_file () with
-  | None -> None
-  | Some file ->
-  dbf_to_csv file;
-  let columns = get_columns file in
-  List.iter (fun w -> w#destroy ()) box#children;
-  List.map (fun col -> GButton.check_button ~label:col ~packing:box#pack (), col) columns >> some
-
 let main () =
 
   let cols = ref [] in
@@ -60,6 +51,7 @@ let main () =
 
   let mainbox = GPack.vbox ~packing:window#add () in
   let bbox = GPack.hbox ~packing:mainbox#pack () in
+  let lbox = GPack.hbox ~packing:(mainbox#pack ~padding:2) () in
   let box_sel = GPack.vbox ~packing:mainbox#pack () in
 
   let bopen = GButton.button ~label:"Open File" ~packing:bbox#pack () in
@@ -72,15 +64,22 @@ let main () =
   let b = GButton.button ~label:"Quit" ~packing:bbox#pack () in
   let _ = b#connect#clicked ~callback:window#destroy in
 
-  let open_file () =
-    begin match new_file (box_sel :> GPack.box) with
-    | None -> ()
-    | Some l -> cols := l
-    end
+  let _ = GMisc.label ~packing:lbox#pack ~text:"File : " () in
+  let filename = GMisc.label ~packing:lbox#pack () in
+
+  let on_new_file file =
+    dbf_to_csv file;
+    filename#set_text file;
+    let columns = get_columns file in
+    List.iter (fun w -> w#destroy ()) box_sel#children;
+    cols := List.map (fun (col,(vl,vh)) -> GButton.check_button ~label:(sprintf "%s (%.3f .. %.3f)" col vl vh) ~packing:box_sel#pack (), col) columns
   in
+
+  let open_file () = ask_for_file () >> Option.may on_new_file in
   let _ = bopen#connect#clicked ~callback:open_file in
 
-  open_file ();
+(*   open_file (); *)
+(*   on_new_file "Omega200 Uzhgorod/Omega 200-1/09-04-13.DBF"; *)
 
   window#show ();
   GMain.main ()
