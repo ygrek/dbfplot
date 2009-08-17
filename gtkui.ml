@@ -50,39 +50,44 @@ let ask_for_file ?parent () =
 
 let main () =
 
-  match ask_for_file () with
-  | None -> ()
-  | Some file ->
-  let columns = get_columns file in
+  let cols = ref [] in
+  let csv_file = ref "" in
 
   let window = GWindow.window ~title:"dbfplot" ~border_width:10 () in
-(*   window#event#connect#delete ~callback:(fun _ -> prerr_endline "Delete event occured"; false); *)
-  window#connect#destroy ~callback:GMain.quit;
+  let _ = window#connect#destroy ~callback:GMain.quit in
 
   let mainbox = GPack.vbox ~packing:window#add () in
+  let bbox = GPack.hbox ~packing:mainbox#pack () in
+  let lbox = GPack.hbox ~packing:(mainbox#pack ~padding:2) () in
+  let box_sel = GPack.vbox ~packing:mainbox#pack () in
 
-(*   let b = GButton.button ~label:"Open File" ~packing:mainbox#pack () in *)
-(*   b#connect#clicked ~callback:(fun () -> file := ask_for_file window); *)
+  let bopen = GButton.button ~label:"Open File" ~packing:bbox#pack () in
 
-  (* ----------------------------------------------------------------------- *)
-
-  let box_select = GPack.vbox ~packing:(mainbox#pack ~padding:2) () in
-
-  let cols = List.map (fun col ->
-    GButton.check_button ~label:col ~packing:box_select#pack (), col) columns in
-
-(*   let _ = GMisc.separator `HORIZONTAL ~packing:(mainbox#pack ~padding:2) () in *)
-
-  (* ----------------------------------------------------------------------- *)
-
-  let button = GButton.button ~label:"Draw" ~packing:mainbox#pack () in
-  let _ = button#connect#clicked ~callback:(fun () ->
-    let sel = List.mapi (fun i (b,n) -> if b#active then Some (i,n) else None) cols >> List.filter_map id in
-    display file sel)
+  let bdraw = GButton.button ~label:"Draw" ~packing:bbox#pack () in
+  let _ = bdraw#connect#clicked ~callback:(fun () ->
+    List.mapi (fun i (b,n) -> if b#active then Some (i,n) else None) !cols >> List.filter_map id >> display !csv_file)
   in
 
-  let button = GButton.button ~label:"Quit" ~packing:mainbox#pack () in
-  button#connect#clicked ~callback:window#destroy;
+  let b = GButton.button ~label:"Quit" ~packing:bbox#pack () in
+  let _ = b#connect#clicked ~callback:window#destroy in
+
+  let _ = GMisc.label ~packing:lbox#pack ~text:"File : " () in
+  let filename = GMisc.label ~packing:lbox#pack () in
+
+  let on_new_file file =
+    csv_file := file;
+    (*dbf_to_csv file;*)
+    filename#set_text file;
+    let columns = get_columns file in
+    List.iter (fun w -> w#destroy ()) box_sel#children;
+    cols := List.map (fun (col,(vl,vh)) -> GButton.check_button ~label:(sprintf "%s (%.3f .. %.3f)" col vl vh) ~packing:box_sel#pack (), col) columns
+  in
+
+  let open_file () = ask_for_file () >> Option.may on_new_file in
+  let _ = bopen#connect#clicked ~callback:open_file in
+
+(*   open_file (); *)
+(*   on_new_file "Omega200 Uzhgorod/Omega 200-1/09-04-13.DBF"; *)
 
   window#show ();
   GMain.main ()
