@@ -5,30 +5,33 @@ open Prelude
 
 let temp_gnuplot = ".temp.gnuplot"
 let temp_csv = ".temp.csv"
-
-let gnuplot_cmd = match Sys.os_type with
-  | "Win32" -> "wgnuplot"
-  | _ -> "gnuplot"
+let win = Sys.os_type = "Win32"
+let gnuplot_cmd = if win then "wgnuplot" else "gnuplot"
 
 let with_open_out s = bracket (open_out s) close_out_noerr
 let with_open_in s = bracket (open_in s) close_in_noerr
 let with_output_ch ch = bracket (IO.output_channel ch) IO.close_out
 
-let gnuplot out name cols =
+let gnuplot out name cols single =
   let pr fmt = IO.printf out (fmt ^^ ";\n")in
   pr "set datafile separator \",\"";
   pr "set data style lines";
-  pr "set lmargin 10";
-  pr "set tmargin 1";
+  pr "set lmargin %u" (if win then 5 else 10);
+  pr "set tmargin %f" (if win then 0.5 else 1.);
   pr "set bmargin 0";
   pr "set rmargin 0";
   pr "set xtics in offset 0, 2";
+  if single then
+    pr "plot %s" (List.map (fun (n,t) -> sprintf "'%s' using 0:%u title '%s'" name (n+1) t) cols >> String.concat ",")
+  else
+  begin
   pr "set multiplot layout %u,1" (List.length cols);
-  let plot_col (col,title) =
-    pr "plot '%s' using 0:%u title '%s'" name (col+1) title
+  let plot_col (n,title) =
+    pr "plot '%s' using 0:%u title '%s'" name (n+1) title
   in
   List.iter plot_col cols;
   pr "unset multiplot"
+  end
 (*   pr "plot %s" (String.concat "," (List.map plot_col cols)) *)
 (*   IO.printf out "pause -1;\n" *)
 
@@ -99,9 +102,9 @@ let get_columns name =
    "dS_dT";"L";"dL_dT";"m";"dm_dT";"Vakuum";"Mode";"Info"]
   else cols) ranges
 
-let display name cols =
+let display name cols single =
   with_open_out temp_gnuplot (fun ch ->
-    with_output_ch ch (fun out -> gnuplot out name cols)
+    with_output_ch ch (fun out -> gnuplot out name cols single)
   );
   Sys.command (sprintf "%s -persist %s" gnuplot_cmd temp_gnuplot) >> ignore
 
