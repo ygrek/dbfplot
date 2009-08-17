@@ -4,6 +4,8 @@ open Prelude
 open ExtLib
 open Dbf
 
+let x = new Lang.ru
+
 let locale = GtkMain.Main.init ()
 
 let error ?parent message =
@@ -34,7 +36,7 @@ let all_files () =
 let ask_for_file ?parent () =
   let dialog = GWindow.file_chooser_dialog
       ~action:`OPEN
-      ~title:"Open File"
+      ~title:x#open_file
       ?parent ()
   in
   dialog#add_button_stock `CANCEL `CANCEL ;
@@ -62,14 +64,14 @@ let main () =
   let box_opt = GPack.hbox ~packing:(mainbox#pack ~padding:2) () in
   let box_sel = GPack.vbox ~packing:mainbox#pack () in
 
-  let bopen = GButton.button ~label:"Open File" ~packing:bbox#pack () in
+  let bopen = GButton.button ~label:x#open_file ~packing:bbox#pack () in
 
-  let bdraw = GButton.button ~label:"Draw" ~packing:bbox#pack () in
+  let bdraw = GButton.button ~label:x#draw ~packing:bbox#pack () in
 
-  let b = GButton.button ~label:"Quit" ~packing:bbox#pack () in
+  let b = GButton.button ~label:x#quit ~packing:bbox#pack () in
   let _ = b#connect#clicked ~callback:window#destroy in
 
-  let _ = GMisc.label ~packing:lbox#pack ~text:"File : " () in
+  let _ = GMisc.label ~packing:lbox#pack ~text:(x#file ^ " : ") () in
   let filename = GMisc.label ~packing:lbox#pack () in
 
   let button label packing f =
@@ -79,10 +81,10 @@ let main () =
   in
 
   let opt = box_opt#pack ~padding:2 in
-  button "Clear all" opt (fun () -> List.iter (fun (b,_) -> b#set_active false) !cols);
-  button "Check all valid" opt (fun () -> List.iter (fun (b,col) -> if is_notempty col then b#set_active true) !cols);
+  button x#clear_all opt (fun () -> List.iter (fun (b,_) -> b#set_active false) !cols);
+  button x#check_valid opt (fun () -> List.iter (fun (b,col) -> if is_notempty col then b#set_active true) !cols);
 
-  let bsingle = GButton.check_button ~label:"Single plot" ~packing:box_opt#pack () in
+  let bsingle = GButton.check_button ~label:x#single_plot ~packing:box_opt#pack () in
 
   let on_new_file file =
     csv_file := file;
