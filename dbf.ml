@@ -25,7 +25,7 @@ let gnuplot out name cols =
   pr "set xtics in offset 0, 2";
   pr "set multiplot layout %u,1" (List.length cols);
   let plot_col (col,title) =
-    pr "plot '%s' using 0:%u title '%s'" name col title
+    pr "plot '%s' using 0:%u title '%s'" name (col+1) title
   in
   List.iter plot_col cols;
   pr "unset multiplot"

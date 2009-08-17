@@ -53,7 +53,7 @@ let main () =
   let cols = ref [] in
   let csv_file = ref "" in
 
-  let window = GWindow.window ~title:"dbfplot" ~border_width:10 () in
+  let window = GWindow.window ~title:(sprintf "dbfplot %s" Version.id) ~border_width:10 () in
   let _ = window#connect#destroy ~callback:GMain.quit in
 
   let mainbox = GPack.vbox ~packing:window#add () in
