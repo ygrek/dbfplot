@@ -82,6 +82,9 @@ let csv_get_ranges ch =
   Std.input_lines ch >> Enum.iter (fun s -> split_columns s >> List.map (fun x -> try float_of_string x with _ -> 0.0) >> collect);
   !x
 
+type column = { name : string; vl : float; vh : float; }
+let is_notempty c = c.vl +. epsilon_float < c.vh
+
 (* FIXME exceptions *)
 let get_columns name =
   (*dbf_to_csv name;*)
@@ -90,7 +93,8 @@ let get_columns name =
     csv_get_ranges ch >> List.take 19,
     split_columns first >> List.take 19)
   in
-  List.combine (if List.length cols = 19 then
+  List.map2 (fun name (vl,vh) -> {name=name; vl=vl; vh=vh;})
+  (if List.length cols = 19 then
   ["Timer";"Num";"Date";"Time";"U_set";"U";"dU_dT";"I";"R";"S_set";"S";
    "dS_dT";"L";"dL_dT";"m";"dm_dT";"Vakuum";"Mode";"Info"]
   else cols) ranges

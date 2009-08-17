@@ -12,7 +12,7 @@ let error ?parent message =
       ~message_type:`ERROR
       ~buttons:GWindow.Buttons.close
       ?parent ~destroy_with_parent:true ~show:true () in
-  w#run ();
+  w#run () >> ignore;
   w#destroy ();
   ()
 
@@ -59,13 +59,14 @@ let main () =
   let mainbox = GPack.vbox ~packing:window#add () in
   let bbox = GPack.hbox ~packing:mainbox#pack () in
   let lbox = GPack.hbox ~packing:(mainbox#pack ~padding:2) () in
+  let box_opt = GPack.hbox ~packing:(mainbox#pack ~padding:2) () in
   let box_sel = GPack.vbox ~packing:mainbox#pack () in
 
   let bopen = GButton.button ~label:"Open File" ~packing:bbox#pack () in
 
   let bdraw = GButton.button ~label:"Draw" ~packing:bbox#pack () in
   let _ = bdraw#connect#clicked ~callback:(fun () ->
-    List.mapi (fun i (b,n) -> if b#active then Some (i,n) else None) !cols >> List.filter_map id >> display !csv_file)
+    List.mapi (fun i (b,col) -> if b#active then Some (i,col.name) else None) !cols >> List.filter_map id >> display !csv_file)
   in
 
   let b = GButton.button ~label:"Quit" ~packing:bbox#pack () in
@@ -73,20 +74,23 @@ let main () =
 
   let _ = GMisc.label ~packing:lbox#pack ~text:"File : " () in
   let filename = GMisc.label ~packing:lbox#pack () in
-
+(*
+  let b = GButton.button ~label:"Check all valid" ~packing:box_opt#pack () in
+  let _ = b#connect#clicked ~callback:(fun () -> List.iter (fun (b,col) -> if is_notempty col then b#set_active true) !cols) in
+*)
   let on_new_file file =
     csv_file := file;
     (*dbf_to_csv file;*)
     filename#set_text file;
     let columns = get_columns file in
     List.iter (fun w -> w#destroy ()) box_sel#children;
-    cols := List.map (fun (col,(vl,vh)) -> GButton.check_button ~label:(sprintf "%s (%.3f .. %.3f)" col vl vh) ~packing:box_sel#pack (), col) columns
+    cols := List.map (fun col -> GButton.check_button ~label:(sprintf "%s (%.3f .. %.3f)" col.name col.vl col.vh) ~packing:box_sel#pack (), col) columns
   in
 
   let open_file () = ask_for_file () >> Option.may on_new_file in
   let _ = bopen#connect#clicked ~callback:open_file in
 
-(*   open_file (); *)
+  open_file ();
 (*   on_new_file "Omega200 Uzhgorod/Omega 200-1/09-04-13.DBF"; *)
 
   window#show ();
