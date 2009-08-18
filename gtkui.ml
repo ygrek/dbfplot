@@ -62,7 +62,21 @@ let main () =
   let bbox = GPack.hbox ~packing:mainbox#pack () in
   let lbox = GPack.hbox ~packing:(mainbox#pack ~padding:2) () in
   let box_opt = GPack.hbox ~packing:(mainbox#pack ~padding:2) () in
-  let box_sel = GPack.vbox ~packing:mainbox#pack () in
+  let box_main = GPack.hbox ~packing:(mainbox#pack ~expand:true) () in
+  let box_sel = GPack.vbox ~packing:box_main#pack () in
+
+  let da = GMisc.drawing_area ~packing:box_main#add () in
+  let dw = da#misc#realize (); new GDraw.drawable (da#misc#window) in
+  let expose_event _ =
+    dw#set_foreground `WHITE;
+    let (w,h) = dw#size in
+    dw#rectangle ~filled:true ~x:0 ~y:0 ~width:w ~height:h ();
+    dw#set_foreground `BLACK;
+    dw#line ~x:0 ~y:0 ~x:w ~y:h;
+    dw#line ~x:w ~y:0 ~x:0 ~y:h;
+    false
+  in
+  da#event#connect#expose ~callback:expose_event >> ignore;
 
   let bopen = GButton.button ~label:x#open_file ~packing:bbox#pack () in
 
