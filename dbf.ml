@@ -92,7 +92,7 @@ let is_notempty c = c.vl +. epsilon_float < c.vh
 let get_columns name =
   (*dbf_to_csv name;*)
   let (ranges,cols) = with_open_in name (fun ch ->
-    let first = try input_line ch with _ -> "" in
+    let first = input_line ch in
     csv_get_ranges ch >> List.take 19,
     split_columns first >> List.take 19)
   in
@@ -101,6 +101,8 @@ let get_columns name =
   ["Timer";"Num";"Date";"Time";"U_set";"U";"dU_dT";"I";"R";"S_set";"S";
    "dS_dT";"L";"dL_dT";"m";"dm_dT";"Vakuum";"Mode";"Info"]
   else cols) ranges
+
+let get_columns name = try get_columns name with _ -> []
 
 let display name cols single =
   with_open_out temp_gnuplot (fun ch ->

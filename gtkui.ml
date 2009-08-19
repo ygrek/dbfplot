@@ -26,7 +26,7 @@ let dbf_filter () =
 let csv_filter () =
   GFile.filter
     ~name:"CSV files"
-    ~patterns:[ "*.csv"] ()
+    ~patterns:[ "*.csv"; "*.CSV"] ()
 
 let all_files () =
   let f = GFile.filter ~name:"All" () in
@@ -117,9 +117,8 @@ let main () =
     display !csv_file cols bsingle#active)
   in
 
-
-  open_file ();
-(*   on_new_file "Omega200 Uzhgorod/Omega 200-1/09-04-13.DBF"; *)
+(*   open_file (); *)
+  on_new_file "Omega200 Uzhgorod/Omega 200-1/09-04-13.DBF.CSV";
 
   window#show ();
   GMain.main ()
