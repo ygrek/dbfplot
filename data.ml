@@ -105,6 +105,8 @@ let get_ranges m =
 let set_names m l =
   Array.mapi (fun i (a,s) -> a, if i < List.length l then List.nth l i else s) m
 
+let is_ok m = Array.length m <> 0 && Array.length (fst m.(0)) <> 0
+
 end (* module Csv *)
 
 let read file =

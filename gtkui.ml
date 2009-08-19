@@ -50,10 +50,19 @@ let ask_for_file ?parent () =
   in
   dialog#destroy (); r
 
+let float = float_of_int
+
+let linear a b c d =
+  if abs_float (a -. b) < 2. *. epsilon_float then fun _ -> c else
+  let k = float (d - c) /. (b -. a) in
+  let q = (float  c) -. k *. a in
+  fun x -> int_of_float (k *. x +. q)
+
 let main () =
 
   let cols = ref [] in
   let csv_file = ref "" in
+  let csv_data = ref [||] in
 
   let window = GWindow.window ~title:(sprintf "dbfplot %s" Version.id) ~border_width:10 () in
   let _ = window#connect#destroy ~callback:GMain.quit in
@@ -65,6 +74,14 @@ let main () =
   let box_main = GPack.hbox ~packing:(mainbox#pack ~expand:true) () in
   let box_sel = GPack.vbox ~packing:box_main#pack () in
 
+  let is_active i =
+    if i < List.length !cols then
+      let (b,_) = List.nth !cols i in
+      b#active
+    else
+      false
+  in
+
   let da = GMisc.drawing_area ~packing:box_main#add () in
   let dw = da#misc#realize (); new GDraw.drawable (da#misc#window) in
   let expose_event _ =
@@ -72,8 +89,21 @@ let main () =
     let (w,h) = dw#size in
     dw#rectangle ~filled:true ~x:0 ~y:0 ~width:w ~height:h ();
     dw#set_foreground `BLACK;
-    dw#line ~x:0 ~y:0 ~x:w ~y:h;
-    dw#line ~x:w ~y:0 ~x:0 ~y:h;
+    if Csv.is_ok !csv_data then
+    begin
+    let ranges = Csv.get_ranges !csv_data in
+    let n = Array.length (fst !csv_data.(0)) in
+    let x = fun v -> linear 0. (float (n-1)) 0 w (float v) in
+    let y i = linear (fst ranges.(i)) (snd ranges.(i)) h 0 in
+    for i = 0 to Array.length !csv_data - 1 do
+      if is_active i then
+      (let a = fst !csv_data.(i) in
+      let y = y i in
+      for j = 1 to n - 1 do
+        dw#line ~x:(x (j-1)) ~y:(y a.(j-1)) ~x:(x j) ~y:(y a.(j));
+      done)
+    done;
+    end;
     false
   in
   da#event#connect#expose ~callback:expose_event >> ignore;
@@ -103,10 +133,15 @@ let main () =
   let on_new_file file =
     csv_file := file;
     (*dbf_to_csv file;*)
+    csv_data := read file;
     filename#set_text file;
     let columns = get_columns file in
     List.iter (fun w -> w#destroy ()) box_sel#children;
-    cols := List.map (fun col -> GButton.check_button ~label:(sprintf "%s (%.3f .. %.3f)" col.name col.vl col.vh) ~packing:box_sel#pack (), col) columns
+    cols := List.map (fun col -> 
+      let b = GButton.check_button ~label:(sprintf "%s (%.3f .. %.3f)" col.name col.vl col.vh) ~packing:box_sel#pack () in
+      b#connect#clicked ~callback:(ignore & expose_event) >> ignore;
+      b, col) 
+    columns
   in
 
   let open_file () = ask_for_file () >> Option.may on_new_file in
