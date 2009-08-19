@@ -75,6 +75,44 @@ let user_select_columns name =
   else begin print_endline "No columns found"; None end
 *)
 
+module Csv = 
+struct
+
+type ('a,'b) t = ('a array * 'b) array (** rectangular, by columns *)
+
+let input ch =
+  let a = Std.input_lines ch >> Enum.map (Array.of_list & split_columns) >> 
+  Enum.fold (fun a acc -> match acc with
+      | [] -> [a]
+      | l -> if Array.length (List.hd l) = Array.length a then a::l else l) [] >>
+  Array.of_list in
+  Array.rev_in_place a;
+  (* transpose *)
+  let n = Array.length a in
+  if n = 0 then [||] else
+  Array.init (Array.length a.(0)) (fun i -> Array.init n (fun j -> a.(j).(i)), "")
+
+let convert f m =
+  m >> Array.to_list >> List.filter_map (fun (a,x) -> try Some (Array.map f a, x) with _ -> None) >> Array.of_list
+
+let get_ranges m =
+  let get_range def (a,_) =
+    if Array.length a = 0 then def else
+    Array.fold_left (fun (vl,vh as r) v -> if v < vl then v,vh else if v > vh then vl,v else r) (a.(0),a.(0)) a
+  in
+  Array.map (get_range (0.0,0.0)) m
+
+let set_names m l =
+  Array.mapi (fun i (a,s) -> a, if i < List.length l then List.nth l i else s) m
+
+end (* module Csv *)
+
+let read file =
+  let m = with_open_in file Csv.input in
+  let m = Csv.set_names m ["Timer";"Num";"Date";"Time";"U_set";"U";"dU_dT";"I";"R";"S_set";"S";
+   "dS_dT";"L";"dL_dT";"m";"dm_dT";"Vakuum";"Mode";"Info"] in
+  Csv.convert float_of_string m
+
 let csv_get_ranges ch =
   let x = ref [] in
   let collect y =
