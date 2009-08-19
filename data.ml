@@ -75,6 +75,8 @@ let user_select_columns name =
   else begin print_endline "No columns found"; None end
 *)
 
+let afilter_map f a = a >> Array.to_list >> List.filter_map f >> Array.of_list
+
 module Csv = 
 struct
 
@@ -92,8 +94,7 @@ let input ch =
   if n = 0 then [||] else
   Array.init (Array.length a.(0)) (fun i -> Array.init n (fun j -> a.(j).(i)), "")
 
-let convert f m =
-  m >> Array.to_list >> List.filter_map (fun (a,x) -> try Some (Array.map f a, x) with _ -> None) >> Array.of_list
+let convert f = afilter_map (fun (a,x) -> try Some (Array.map f a, x) with _ -> None)
 
 let get_ranges m =
   let get_range def (a,_) =
@@ -126,7 +127,7 @@ let csv_get_ranges ch =
   !x
 
 type column = { name : string; vl : float; vh : float; }
-let is_notempty c = c.vl +. epsilon_float < c.vh
+let is_notempty (vl,vh) = vl +. epsilon_float < vh
 
 (* FIXME exceptions *)
 let get_columns name =

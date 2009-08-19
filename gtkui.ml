@@ -126,7 +126,7 @@ let main () =
 
   let bopen = GButton.button ~label:x#open_file ~packing:bbox#pack () in
 
-  let bdraw = GButton.button ~label:x#draw ~packing:bbox#pack () in
+(*   let bdraw = GButton.button ~label:x#draw ~packing:bbox#pack () in *)
 
   let b = GButton.button ~label:x#quit ~packing:bbox#pack () in
   let _ = b#connect#clicked ~callback:window#destroy in
@@ -142,26 +142,27 @@ let main () =
 
   let opt = box_opt#pack ~padding:2 in
   button x#clear_all opt (fun () -> List.iter (fun b -> b#set_active false) !cols);
-(*   button x#check_valid opt (fun () -> List.iter (fun (b,col) -> if is_notempty col then b#set_active true) !cols); *)
+(*    button x#check_valid opt (fun () -> List.iter (fun (b,col) -> if is_notempty col then b#set_active true) !cols); *)
 
-  let bsingle = GButton.check_button ~label:x#single_plot ~packing:box_opt#pack () in
+(*   let bsingle = GButton.check_button ~label:x#single_plot ~packing:box_opt#pack () in *)
 
   let on_new_file file =
-    csv_file := file;
-    (*dbf_to_csv file;*)
-    csv_data := read file;
-    filename#set_text file;
-    let ranges = Csv.get_ranges !csv_data in
     List.iter (fun w -> w#destroy ()) box_sel#children;
-    cols := Array.mapi (fun i (a,name) -> 
+    csv_file := file;
+    filename#set_text file;
+    csv_data := read file;
+    let ranges = Csv.get_ranges !csv_data in
+    csv_data := Array.mapi (fun i x -> if is_notempty ranges.(i) then Some x else None) !csv_data >> Array.to_list >> List.filter_map id >> Array.of_list;
+    let ranges = Csv.get_ranges !csv_data in
+    cols := !csv_data >> Array.mapi (fun i (a,name) ->
       let b = GButton.check_button 
         ~label:(sprintf "%s (%.3f .. %.3f)" name (fst ranges.(i)) (snd ranges.(i)))
         ~packing:box_sel#pack 
         () 
       in
       b#connect#clicked ~callback:(ignore & expose_event) >> ignore;
-      b)
-    !csv_data >> Array.to_list
+      b) >> Array.to_list;
+    expose_event () >> ignore;
   in
 
   let open_file () = ask_for_file () >> Option.may on_new_file in
