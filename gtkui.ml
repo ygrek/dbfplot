@@ -2,7 +2,7 @@
 open Printf
 open Prelude
 open ExtLib
-open Dbf
+open Data
 
 let x = new Lang.ru
 
