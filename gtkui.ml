@@ -58,6 +58,19 @@ let linear a b c d =
   let q = (float  c) -. k *. a in
   fun x -> int_of_float (k *. x +. q)
 
+let colors = [| 0,0,0; 255,0,0; 0,255,0; 0,0,255; 255,0,255; |] >> Array.map (fun (r,g,b) -> `RGB (r*256,g*256,b*256))
+let styles = [| `SOLID; `ON_OFF_DASH; |]
+
+let select_style (dw:GDraw.drawable) ctr =
+    let color = ctr mod Array.length colors in
+    let style = (ctr / Array.length colors) mod Array.length styles in
+    dw#set_foreground colors.(color);
+    dw#set_line_attributes ~style:styles.(style) ()
+
+let new_set_style () =
+  let ctr = ref 0 in
+  fun dw -> select_style dw !ctr; incr ctr
+
 let main () =
 
   let cols = ref [] in
@@ -97,11 +110,14 @@ let main () =
     let y i = linear (fst ranges.(i)) (snd ranges.(i)) h 0 in
     for i = 0 to Array.length !csv_data - 1 do
       if is_active i then
-      (let a = fst !csv_data.(i) in
+      (
+      select_style dw i;
+      let a = fst !csv_data.(i) in
       let y = y i in
       for j = 1 to n - 1 do
         dw#line ~x:(x (j-1)) ~y:(y a.(j-1)) ~x:(x j) ~y:(y a.(j));
-      done)
+      done
+      )
     done;
     end;
     false
