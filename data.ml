@@ -113,7 +113,7 @@ let read file =
   let m = with_open_in file Csv.input in
   let m = Csv.set_names m ["Timer";"Num";"Date";"Time";"U_set";"U";"dU_dT";"I";"R";"S_set";"S";
    "dS_dT";"L";"dL_dT";"m";"dm_dT";"Vakuum";"Mode";"Info"] in
-  Csv.convert float_of_string m
+  Csv.convert (fun s -> try float_of_string s with _ -> 0.0) m
 
 let csv_get_ranges ch =
   let x = ref [] in

@@ -89,7 +89,7 @@ let main () =
 
   let is_active i =
     if i < List.length !cols then
-      let (b,_) = List.nth !cols i in
+      let b = List.nth !cols i in
       b#active
     else
       false
@@ -141,8 +141,8 @@ let main () =
   in
 
   let opt = box_opt#pack ~padding:2 in
-  button x#clear_all opt (fun () -> List.iter (fun (b,_) -> b#set_active false) !cols);
-  button x#check_valid opt (fun () -> List.iter (fun (b,col) -> if is_notempty col then b#set_active true) !cols);
+  button x#clear_all opt (fun () -> List.iter (fun b -> b#set_active false) !cols);
+(*   button x#check_valid opt (fun () -> List.iter (fun (b,col) -> if is_notempty col then b#set_active true) !cols); *)
 
   let bsingle = GButton.check_button ~label:x#single_plot ~packing:box_opt#pack () in
 
@@ -151,22 +151,28 @@ let main () =
     (*dbf_to_csv file;*)
     csv_data := read file;
     filename#set_text file;
-    let columns = get_columns file in
+    let ranges = Csv.get_ranges !csv_data in
     List.iter (fun w -> w#destroy ()) box_sel#children;
-    cols := List.map (fun col -> 
-      let b = GButton.check_button ~label:(sprintf "%s (%.3f .. %.3f)" col.name col.vl col.vh) ~packing:box_sel#pack () in
+    cols := Array.mapi (fun i (a,name) -> 
+      let b = GButton.check_button 
+        ~label:(sprintf "%s (%.3f .. %.3f)" name (fst ranges.(i)) (snd ranges.(i)))
+        ~packing:box_sel#pack 
+        () 
+      in
       b#connect#clicked ~callback:(ignore & expose_event) >> ignore;
-      b, col) 
-    columns
+      b)
+    !csv_data >> Array.to_list
   in
 
   let open_file () = ask_for_file () >> Option.may on_new_file in
 
   let _ = bopen#connect#clicked ~callback:open_file in
+(*
   let _ = bdraw#connect#clicked ~callback:(fun () ->
     let cols = List.mapi (fun i (b,col) -> if b#active then Some (i,col.name) else None) !cols >> List.filter_map id in
     display !csv_file cols bsingle#active)
   in
+*)
 
 (*   open_file (); *)
   on_new_file "Omega200 Uzhgorod/Omega 200-1/09-04-13.DBF.CSV";
