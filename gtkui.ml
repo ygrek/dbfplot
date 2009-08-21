@@ -119,10 +119,33 @@ let main () =
       done
       )
     done;
+    let (cx,cy) = da#misc#pointer in
+    if cx > 0 && cx < w then
+    begin
+      dw#set_foreground `BLACK;
+      dw#line ~x:cx ~y:0 ~x:cx ~y:h;
+    end;
     end;
     false
   in
+  let motion_notify ev =
+    let (x, y) =
+      if GdkEvent.Motion.is_hint ev 
+        then da#misc#pointer 
+        else (int_of_float (GdkEvent.Motion.x ev), int_of_float (GdkEvent.Motion.y ev))
+    in
+    printf "%i %i\n%!" x y;
+    expose_event () >> ignore;
+    true
+  in
   da#event#connect#expose ~callback:expose_event >> ignore;
+  da#event#connect#motion_notify ~callback:motion_notify >> ignore;
+  da#event#connect#button_press ~callback:(fun ev -> print_endline "event"; false) >> ignore;
+  da#event#add [`EXPOSURE;
+    `BUTTON_PRESS;
+    `POINTER_MOTION;
+    `POINTER_MOTION_HINT;
+    ];
 
   let bopen = GButton.button ~label:x#open_file ~packing:bbox#pack () in
 
