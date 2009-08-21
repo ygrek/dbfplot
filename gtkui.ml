@@ -109,27 +109,36 @@ let main () =
     dw#set_foreground `BLACK;
     if Csv.is_ok !csv_data then
     begin
-    let ranges = Csv.get_ranges !csv_data in
-    let n = Array.length (fst !csv_data.(0)) in
-    let x = fun v -> linear 0. (float (n-1)) 0 w (float v) in
-    let y i = linear (fst ranges.(i)) (snd ranges.(i)) h 0 in
-    for i = 0 to Array.length !csv_data - 1 do
-      if is_active i then
-      (
-      select_style dw i;
-      let a = fst !csv_data.(i) in
-      let y = y i in
-      for j = 1 to n - 1 do
-        dw#line ~x:(x (j-1)) ~y:(y a.(j-1)) ~x:(x j) ~y:(y a.(j));
-      done
-      )
-    done;
-    let (cx,cy) = da#misc#pointer in
-    if cx > 0 && cx < w then
-    begin
-      select_style dw 0;
-      dw#line ~x:cx ~y:0 ~x:cx ~y:h;
-    end;
+      let (cx,cy) = da#misc#pointer in
+      let mouse = cx > 0 && cx < w && cy > 0 && cy < h in
+      if mouse then
+      begin
+        select_style dw 0;
+        dw#line ~x:cx ~y:0 ~x:cx ~y:h;
+        dw#line ~x:0 ~y:cy ~x:w ~y:cy;
+      end;
+      let ranges = Csv.get_ranges !csv_data in
+      let n = Array.length (fst !csv_data.(0)) in
+      let x = fun v -> linear 0. (float (n-1)) 0 w (float v) in
+      let y i = linear (fst ranges.(i)) (snd ranges.(i)) h 0 in
+      let unx = fun v -> linear 0. (float w) 0 (n-1) (float v) in
+      for i = 0 to Array.length !csv_data - 1 do
+        if is_active i then
+        begin
+          select_style dw i;
+          let a = fst !csv_data.(i) in
+          let y = y i in
+          for j = 1 to n - 1 do
+            dw#line ~x:(x (j-1)) ~y:(y a.(j-1)) ~x:(x j) ~y:(y a.(j));
+          done;
+          if mouse then
+          begin
+            let v = a.(unx cx) in
+            select_style dw 0;
+            dw#string ~font:da#misc#style#font ~x:(cx + 4) ~y:(y v + 4) (string_of_float v);
+          end
+        end;
+      done;
     end;
     da#misc#draw None
   in
@@ -162,12 +171,12 @@ let main () =
   in
 
   let motion_notify ev =
-    let (x, y) =
+    let _ =
+      (* needed for MOTION_HINT *)
       if GdkEvent.Motion.is_hint ev 
         then da#misc#pointer 
         else (int_of_float (GdkEvent.Motion.x ev), int_of_float (GdkEvent.Motion.y ev))
     in
-    printf "%i %i\n%!" x y;
     update ();
     true
   in
