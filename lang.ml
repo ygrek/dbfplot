@@ -12,5 +12,6 @@ method quit = "Выйти"
 method check_valid = "Отметить все непустые"
 method clear_all = "Снять все отметки"
 method single_plot = "В одной сетке"
+method show_mouse_values = "Показывать значения под курсором"
 method file = "файл"
 end

@@ -87,6 +87,22 @@ let main () =
   let box_main = GPack.hbox ~packing:(mainbox#pack ~expand:true) () in
   let box_sel = GPack.vbox ~packing:box_main#pack () in
 
+  let bopen = GButton.button ~label:x#open_file ~packing:bbox#pack () in
+
+  let button label packing f =
+    let b = GButton.button ~label ~packing () in
+    let _ = b#connect#clicked ~callback:f in
+    ()
+  in
+
+  button x#quit bbox#pack window#destroy;
+  GMisc.label ~packing:lbox#pack ~text:(x#file ^ " : ") () >> ignore;
+  let filename = GMisc.label ~packing:lbox#pack () in
+  let opt = box_opt#pack ~padding:2 in
+  button x#clear_all opt (fun () -> List.iter (fun b -> b#set_active false) !cols);
+  let bmouse_values = GButton.check_button ~label:x#show_mouse_values ~packing:opt () in
+  bmouse_values#set_active true;
+
   let is_active i =
     if i < List.length !cols then
       let b = List.nth !cols i in
@@ -110,7 +126,7 @@ let main () =
     if Csv.is_ok !csv_data then
     begin
       let (cx,cy) = da#misc#pointer in
-      let mouse = cx > 0 && cx < w && cy > 0 && cy < h in
+      let mouse = cx > 0 && cx < w && cy > 0 && cy < h && bmouse_values#active in
       if mouse then
       begin
         select_style dw 0;
@@ -134,8 +150,17 @@ let main () =
           if mouse then
           begin
             let v = a.(unx cx) in
+            let font = da#misc#style#font in
+            let str = string_of_float v in
+            let str_w = Gdk.Font.string_width font str + 4 in
+            let str_h = Gdk.Font.string_height font str + 2 in
+            let px = cx and py = y v in
+            let x = if px + str_w < w then px + 4 else px - str_w in
+            let y = if py - str_h < 0 then py + str_h else py - 2 in
+            dw#set_foreground `WHITE;
+            dw#rectangle ~x ~y:(y-str_h) ~width:str_w ~height:str_h ~filled:true ();
             select_style dw 0;
-            dw#string ~font:da#misc#style#font ~x:(cx + 4) ~y:(y v + 4) (string_of_float v);
+            dw#string ~font ~x ~y str;
           end
         end;
       done;
@@ -180,6 +205,7 @@ let main () =
     update ();
     true
   in
+
   da#event#connect#expose ~callback:expose >> ignore;
   da#event#connect#configure ~callback:configure >> ignore;
   da#event#connect#motion_notify ~callback:motion_notify >> ignore;
@@ -190,24 +216,6 @@ let main () =
     `POINTER_MOTION_HINT;
     ];
 
-  let bopen = GButton.button ~label:x#open_file ~packing:bbox#pack () in
-
-(*   let bdraw = GButton.button ~label:x#draw ~packing:bbox#pack () in *)
-
-  let b = GButton.button ~label:x#quit ~packing:bbox#pack () in
-  let _ = b#connect#clicked ~callback:window#destroy in
-
-  let _ = GMisc.label ~packing:lbox#pack ~text:(x#file ^ " : ") () in
-  let filename = GMisc.label ~packing:lbox#pack () in
-
-  let button label packing f =
-    let b = GButton.button ~label ~packing () in
-    let _ = b#connect#clicked ~callback:f in
-    ()
-  in
-
-  let opt = box_opt#pack ~padding:2 in
-  button x#clear_all opt (fun () -> List.iter (fun b -> b#set_active false) !cols);
 (*    button x#check_valid opt (fun () -> List.iter (fun (b,col) -> if is_notempty col then b#set_active true) !cols); *)
 
 (*   let bsingle = GButton.check_button ~label:x#single_plot ~packing:box_opt#pack () in *)
