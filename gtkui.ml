@@ -96,8 +96,13 @@ let main () =
   in
 
   let da = GMisc.drawing_area ~packing:box_main#add () in
-  let dw = da#misc#realize (); new GDraw.drawable (da#misc#window) in
-  let expose_event _ =
+(*   let dw = da#misc#realize (); new GDraw.drawable (da#misc#window) in *)
+
+  (* Backing pixmap for drawing area *)
+  let backing = ref (GDraw.pixmap ~width:200 ~height:200 ()) in
+
+  let update () =
+    let dw = (!backing :> GDraw.drawable) in
     dw#set_foreground `WHITE;
     let (w,h) = dw#size in
     dw#rectangle ~filled:true ~x:0 ~y:0 ~width:w ~height:h ();
@@ -122,12 +127,40 @@ let main () =
     let (cx,cy) = da#misc#pointer in
     if cx > 0 && cx < w then
     begin
-      dw#set_foreground `BLACK;
+      select_style dw 0;
       dw#line ~x:cx ~y:0 ~x:cx ~y:h;
     end;
     end;
+    da#misc#draw None
+  in
+
+  (* Create a new backing pixmap of the appropriate size *)
+  let configure ev =
+    let width = GdkEvent.Configure.width ev in
+    let height = GdkEvent.Configure.height ev in
+    let pixmap = GDraw.pixmap ~width ~height ~window () in
+    pixmap#set_foreground `WHITE;
+    pixmap#rectangle ~x:0 ~y:0 ~width ~height ~filled:true ();
+    backing := pixmap;
+    update ();
+    true
+  in
+
+  (* Redraw the screen from the backing pixmap *)
+  let expose ev =
+    let area = GdkEvent.Expose.area ev in
+    let x = Gdk.Rectangle.x area in
+    let y = Gdk.Rectangle.y area in
+    let width = Gdk.Rectangle.width area in
+    let height = Gdk.Rectangle.width area in
+    let drawing =
+      da#misc#realize ();
+      new GDraw.drawable (da#misc#window)
+    in
+    drawing#put_pixmap ~x ~y ~xsrc:x ~ysrc:y ~width ~height !backing#pixmap;
     false
   in
+
   let motion_notify ev =
     let (x, y) =
       if GdkEvent.Motion.is_hint ev 
@@ -135,10 +168,11 @@ let main () =
         else (int_of_float (GdkEvent.Motion.x ev), int_of_float (GdkEvent.Motion.y ev))
     in
     printf "%i %i\n%!" x y;
-    expose_event () >> ignore;
+    update ();
     true
   in
-  da#event#connect#expose ~callback:expose_event >> ignore;
+  da#event#connect#expose ~callback:expose >> ignore;
+  da#event#connect#configure ~callback:configure >> ignore;
   da#event#connect#motion_notify ~callback:motion_notify >> ignore;
   da#event#connect#button_press ~callback:(fun ev -> print_endline "event"; false) >> ignore;
   da#event#add [`EXPOSURE;
@@ -183,9 +217,9 @@ let main () =
         ~packing:box_sel#pack 
         () 
       in
-      b#connect#clicked ~callback:(ignore & expose_event) >> ignore;
+      b#connect#clicked ~callback:update >> ignore;
       b) >> Array.to_list;
-    expose_event () >> ignore;
+    update ();
   in
 
   let open_file () = ask_for_file () >> Option.may on_new_file in
