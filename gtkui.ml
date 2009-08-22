@@ -207,7 +207,7 @@ let main () =
   da#event#connect#expose ~callback:expose >> ignore;
   da#event#connect#configure ~callback:configure >> ignore;
   da#event#connect#motion_notify ~callback:motion_notify >> ignore;
-  da#event#connect#button_press ~callback:(fun ev -> print_endline "event"; false) >> ignore;
+(*   da#event#connect#button_press ~callback:(fun ev -> print_endline "event"; false) >> ignore; *)
   da#event#add [`EXPOSURE;
     `BUTTON_PRESS;
     `POINTER_MOTION;
@@ -228,13 +228,11 @@ let main () =
     csv_data := Array.mapi (fun i x -> if is_notempty ranges.(i) then Some x else None) !csv_data >> Array.to_list >> List.filter_map id >> Array.of_list;
     let ranges = Csv.get_ranges !csv_data in
     cols := !csv_data >> Array.mapi (fun i (a,name) ->
-      let b = GButton.check_button
-        ~label:(sprintf "%s (%.3f .. %.3f)" name (fst ranges.(i)) (snd ranges.(i)))
-        ~packing:box_sel#pack 
-        () 
-      in
+      let b = GButton.check_button ~packing:box_sel#pack () in
       b#connect#clicked ~callback:update >> ignore;
-      b#misc#modify_text [`NORMAL, select_color i];
+      let l = GMisc.label ~text:(sprintf "%s (%.3f .. %.3f)" name (fst ranges.(i)) (snd ranges.(i))) () in
+      b#add l#coerce;
+      l#misc#modify_fg (List.map (fun x -> x, select_color i) [`NORMAL; `PRELIGHT]);
       b) >> Array.to_list;
     update ();
     with e -> error (sprintf "Failed to read %s\n%s\n" file (Printexc.to_string e))
@@ -251,7 +249,7 @@ let main () =
 *)
 
   open_file ();
-(*   on_new_file "Omega200 Uzhgorod/Omega 200-1/09-04-13.DBF.CSV"; *)
+(*    on_new_file "Omega200 Uzhgorod/Omega 200-1/09-04-13.DBF"; *)
 
   window#show ();
   GMain.main ()
