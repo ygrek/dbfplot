@@ -82,8 +82,8 @@ struct
 
 type ('a,'b) t = ('a array * 'b) array (** rectangular, by columns *)
 
-let input ch =
-  let a = Std.input_lines ch >> Enum.map (Array.of_list & split_columns) >> 
+let columns rows =
+  let a = rows >> Enum.map Array.of_list >>
   Enum.fold (fun a acc -> match acc with
       | [] -> [a]
       | l -> if Array.length (List.hd l) = Array.length a then a::l else l) [] >>
@@ -93,6 +93,8 @@ let input ch =
   let n = Array.length a in
   if n = 0 then [||] else
   Array.init (Array.length a.(0)) (fun i -> Array.init n (fun j -> a.(j).(i)), "")
+
+let input ch = Std.input_lines ch >> Enum.map split_columns >> columns
 
 let convert f = afilter_map (fun (a,x) -> try Some (Array.map f a, x) with _ -> None)
 
@@ -110,8 +112,19 @@ let is_ok m = Array.length m <> 0 && Array.length (fst m.(0)) <> 0
 
 end (* module Csv *)
 
+let read_dbf file =
+  let module M = Mlxbase in
+  bracket (M.open_reader ~hints:[M.IgnoreDeletedFlag] file) M.close_reader (fun r ->
+    Enum.from (fun () -> try M.read_record r with End_of_file -> raise Enum.No_more_elements) >>
+    Csv.columns
+  )
+
 let read file =
-  let m = with_open_in file Csv.input in
+  let m =
+    if Filename.check_suffix (String.lowercase file) ".dbf"
+      then read_dbf file
+      else with_open_in file Csv.input
+  in
   let m = Csv.set_names m ["Timer";"Num";"Date";"Time";"U_set";"U";"dU_dT";"I";"R";"S_set";"S";
    "dS_dT";"L";"dL_dT";"m";"dm_dT";"Vakuum";"Mode";"Info"] in
   Csv.convert (fun s -> try float_of_string s with _ -> 0.0) m

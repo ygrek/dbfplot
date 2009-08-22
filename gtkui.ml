@@ -41,6 +41,7 @@ let ask_for_file ?parent () =
   in
   dialog#add_button_stock `CANCEL `CANCEL ;
   dialog#add_select_button_stock `OPEN `OPEN ;
+  dialog#add_filter (dbf_filter ()) ;
   dialog#add_filter (csv_filter ()) ;
   dialog#add_filter (all_files ()) ;
   let r = begin match dialog#run () with
@@ -221,10 +222,11 @@ let main () =
 (*   let bsingle = GButton.check_button ~label:x#single_plot ~packing:box_opt#pack () in *)
 
   let on_new_file file =
+    try
+    csv_data := read file;
     List.iter (fun w -> w#destroy ()) box_sel#children;
     csv_file := file;
     filename#set_text file;
-    csv_data := read file;
     let ranges = Csv.get_ranges !csv_data in
     csv_data := Array.mapi (fun i x -> if is_notempty ranges.(i) then Some x else None) !csv_data >> Array.to_list >> List.filter_map id >> Array.of_list;
     let ranges = Csv.get_ranges !csv_data in
@@ -237,6 +239,7 @@ let main () =
       b#connect#clicked ~callback:update >> ignore;
       b) >> Array.to_list;
     update ();
+    with e -> error (sprintf "Failed to read %s\n%s\n" file (Printexc.to_string e))
   in
 
   let open_file () = ask_for_file () >> Option.may on_new_file in
@@ -249,8 +252,8 @@ let main () =
   in
 *)
 
-(*   open_file (); *)
-  on_new_file "Omega200 Uzhgorod/Omega 200-1/09-04-13.DBF.CSV";
+  open_file ();
+(*   on_new_file "Omega200 Uzhgorod/Omega 200-1/09-04-13.DBF.CSV"; *)
 
   window#show ();
   GMain.main ()

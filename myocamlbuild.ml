@@ -26,6 +26,7 @@ dispatch begin function
 
      C.extern "extlib" ~cma:"extLib";
      C.extern "lablgtk2" ~cma:"lablgtk";
+     C.extern "mlxbase";
 
 | _ -> ()
 end
