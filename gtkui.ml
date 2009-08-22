@@ -232,7 +232,7 @@ let main () =
       b#connect#clicked ~callback:update >> ignore;
       let l = GMisc.label ~text:(sprintf "%s (%.3f .. %.3f)" name (fst ranges.(i)) (snd ranges.(i))) () in
       b#add l#coerce;
-      l#misc#modify_fg (List.map (fun x -> x, select_color i) [`NORMAL; `PRELIGHT]);
+      l#misc#modify_fg (List.map (fun x -> x, select_color i) [`NORMAL; `ACTIVE; `PRELIGHT]);
       b) >> Array.to_list;
     update ();
     with e -> error (sprintf "Failed to read %s\n%s\n" file (Printexc.to_string e))
