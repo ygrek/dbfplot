@@ -62,15 +62,12 @@ let linear a b c d =
 let colors = [| 0,0,0; 255,0,0; 0,255,0; 0,0,255; 255,0,255; |] >> Array.map (fun (r,g,b) -> `RGB (r*256,g*256,b*256))
 let styles = [| `SOLID; `ON_OFF_DASH; |]
 
-let select_style (dw:GDraw.drawable) ctr =
-    let color = ctr mod Array.length colors in
-    let style = (ctr / Array.length colors) mod Array.length styles in
-    dw#set_foreground colors.(color);
-    dw#set_line_attributes ~style:styles.(style) ()
+let select_color ctr = colors.(ctr mod Array.length colors)
 
-let new_set_style () =
-  let ctr = ref 0 in
-  fun dw -> select_style dw !ctr; incr ctr
+let select_style (dw:GDraw.drawable) ctr =
+    let style = (ctr / Array.length colors) mod Array.length styles in
+    dw#set_foreground (select_color ctr);
+    dw#set_line_attributes ~style:styles.(style) ()
 
 let main () =
 
@@ -231,12 +228,13 @@ let main () =
     csv_data := Array.mapi (fun i x -> if is_notempty ranges.(i) then Some x else None) !csv_data >> Array.to_list >> List.filter_map id >> Array.of_list;
     let ranges = Csv.get_ranges !csv_data in
     cols := !csv_data >> Array.mapi (fun i (a,name) ->
-      let b = GButton.check_button 
+      let b = GButton.check_button
         ~label:(sprintf "%s (%.3f .. %.3f)" name (fst ranges.(i)) (snd ranges.(i)))
         ~packing:box_sel#pack 
         () 
       in
       b#connect#clicked ~callback:update >> ignore;
+      b#misc#modify_text [`NORMAL, select_color i];
       b) >> Array.to_list;
     update ();
     with e -> error (sprintf "Failed to read %s\n%s\n" file (Printexc.to_string e))
