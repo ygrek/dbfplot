@@ -14,4 +14,5 @@ method clear_all = "Снять все отметки"
 method single_plot = "В одной сетке"
 method show_mouse_values = "Показывать значения под курсором"
 method file = "файл"
+method save_img = "Сохранить график"
 end

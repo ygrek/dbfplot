@@ -18,32 +18,21 @@ let error ?parent message =
   w#destroy ();
   ()
 
-let dbf_filter () =
-  GFile.filter
-    ~name:"DBase files"
-    ~patterns:[ "*.dbf"; "*.DBF"] ()
+let dbf_filter = GFile.filter ~name:"DBase files" ~patterns:[ "*.dbf"; "*.DBF"] ()
+let csv_filter = GFile.filter ~name:"CSV files" ~patterns:[ "*.csv"; "*.CSV"] ()
+let png_filter = GFile.filter ~name:"PNG files" ~patterns:[ "*.png"; "*.PNG"] ()
+let all_files = GFile.filter ~name:"All" ~patterns:["*"] ()
 
-let csv_filter () =
-  GFile.filter
-    ~name:"CSV files"
-    ~patterns:[ "*.csv"; "*.CSV"] ()
-
-let all_files () =
-  let f = GFile.filter ~name:"All" () in
-  f#add_pattern "*" ;
-  f
-
-let ask_for_file ?parent () =
+let ask_for_file ?filename ?parent action title filters =
   let dialog = GWindow.file_chooser_dialog
-      ~action:`OPEN
-      ~title:x#open_file
+      ~action
+      ~title
       ?parent ()
   in
   dialog#add_button_stock `CANCEL `CANCEL ;
-  dialog#add_select_button_stock `OPEN `OPEN ;
-  dialog#add_filter (dbf_filter ()) ;
-  dialog#add_filter (csv_filter ()) ;
-  dialog#add_filter (all_files ()) ;
+  dialog#add_select_button_stock (match action with `SAVE -> `SAVE | _ -> `OPEN) `OPEN ;
+  List.iter dialog#add_filter filters;
+  Option.may dialog#set_current_name filename;
   let r = begin match dialog#run () with
   | `OPEN -> dialog#filename
   | `DELETE_EVENT | `CANCEL -> None
@@ -86,6 +75,7 @@ let main () =
   let box_sel = GPack.vbox ~packing:box_main#pack () in
 
   let bopen = GButton.button ~label:x#open_file ~packing:bbox#pack () in
+  let bsave = GButton.button ~label:x#save_img ~packing:bbox#pack () in
 
   let button label packing f =
     let b = GButton.button ~label ~packing () in
@@ -238,18 +228,30 @@ let main () =
     with e -> error (sprintf "Failed to read %s\n%s\n" file (Printexc.to_string e))
   in
 
-  let open_file () = ask_for_file () >> Option.may on_new_file in
-
-  let _ = bopen#connect#clicked ~callback:open_file in
-(*
-  let _ = bdraw#connect#clicked ~callback:(fun () ->
-    let cols = List.mapi (fun i (b,col) -> if b#active then Some (i,col.name) else None) !cols >> List.filter_map id in
-    display !csv_file cols bsingle#active)
+  let on_save_img filename =
+    let dw = (!backing :> GDraw.drawable) in
+    let (width,height) = dw#size in
+    let pixbuf = GdkPixbuf.create ~width ~height () in
+    GdkPixbuf.get_from_drawable ~dest:pixbuf !backing#pixmap;
+    GdkPixbuf.save ~filename ~typ:"png" pixbuf
   in
-*)
+  let flip f x y = f y x in
+  let png_name () = 
+    let n = match Sys.readdir "." >> Array.to_list >> 
+      List.filter_map (fun s -> 
+      if Str.string_match (Str.regexp "dbfplot_\\([0-9]+\\).png") s 0 
+        then Some (Str.matched_group 1 s >> int_of_string)
+        else None) >> List.sort ~cmp:(flip compare)
+    with [] -> 1 | n::_ -> n+1 in
+    sprintf "dbfplot_%u.png" n
+  in
+  let save_img () = ask_for_file ~filename:(png_name ()) `SAVE x#save_img [png_filter;all_files] >> Option.may on_save_img in
+  let _ = bsave#connect#clicked ~callback:save_img in
+
+  let open_file () = ask_for_file `OPEN x#open_file [dbf_filter;csv_filter;all_files] >> Option.may on_new_file in
+  let _ = bopen#connect#clicked ~callback:open_file in
 
   open_file ();
-(*    on_new_file "Omega200 Uzhgorod/Omega 200-1/09-04-13.DBF"; *)
 
   window#show ();
   GMain.main ()
@@ -259,3 +261,4 @@ let main () =
     main ()
   with e -> 
     error (Printexc.to_string e ^ "\n" ^ Printexc.get_backtrace ()); raise e
+
